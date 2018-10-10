@@ -1,0 +1,275 @@
+#!/bin/bash
+PIT_SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+PIT_PID=$$
+
+PIT_VERSION=0.1
+
+usage() {
+cat << EOF
+VERSION: $PIT_VERSION
+USAGE:
+    $(basename $0) [options] '<command string>' <input directory> [output directory]
+
+DESCRIPTION:
+    Enables execution of scripts and commands in current shell environment
+    When <input> folder is modified
+
+AUTHOR:
+    Lars Pontoppidan <dev.larpon@gmail.com>
+
+LICENSE:
+    MIT license
+
+OPTIONS:
+    -h
+        Print this and exit
+    -v
+        Be verbose
+
+EXAMPLES:
+    * Copy every input file put in ./backup to /tmp/backup
+    # $(basename $0) 'cp "$PIT_FILE" /tmp/backup' ./backup
+
+EOF
+}
+
+OSENV="linux"
+if [ "$(uname)" == "Darwin" ]; then
+    # Mac OS X platform
+    OSENV="macos"
+elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
+    # GNU/Linux platform
+    OSENV="linux"
+elif [ "$(expr substr $(uname -s) 1 10)" == "MINGW32_NT" ]; then
+    # 32 bits Windows NT platform
+    OSENV="win32"
+elif [ "$(expr substr $(uname -s) 1 10)" == "MINGW64_NT" ]; then
+    # 64 bits Windows NT platform
+    OSENV="win64"
+fi
+
+info() {
+    if [[ $PIT_VERBOSE -eq 0 ]]; then
+        local green="\033[1;32m"
+        local normal="\033[0m"
+        echo -e "[${green}INFO${normal}] $1"
+    fi
+}
+
+error() {
+     local red="\033[1;31m"
+     local normal="\033[0m"
+     echo -e "[${red}ERROR${normal}] $1"
+}
+
+warn() {
+    if [[ $PIT_VERBOSE -eq 0 ]]; then
+        local red="\033[1;31m"
+        local normal="\033[0m"
+        echo -e "[${red}WARNING${normal}] $1"
+    fi
+}
+
+cmdavail () {
+    command -v "$1" >/dev/null 2>&1
+}
+
+check() {
+    cmdavail $1 || { error >&2 "$2"; exit 1; }
+}
+
+full_path()
+{
+    if [ "$OSENV" == "macos" ]; then
+        local fpath="$(readlink "$1")"
+    else
+        local fpath="$(readlink -f "$1")"
+    fi
+
+    echo "$fpath"
+}
+
+ensure_path() {
+    if [ ! -d "$1" ]; then
+        mkdir -p "$1"
+    fi
+}
+
+check_flag_error() {
+    if [[ "$1" == -* ]]; then
+        usage
+        error "One or more options not recognized..."
+        exit 1
+    fi
+}
+
+PIT_VERBOSE=1
+
+while getopts ":a:hv" OPTION
+do
+    case $OPTION in
+        a ) check_flag_error "$OPTARG"; PIT_ARG=$OPTARG ;;
+        h ) usage; exit 0 ;;
+        v ) PIT_VERBOSE=0 ;;
+        * ) usage; error "One or more options not recognized..."; exit 1 ;; # DEFAULT
+    esac
+done
+shift "$(($OPTIND - 1))" # Move argument pointer to next argument.
+
+
+__pit_arg=1
+while test $# -gt 0; do
+#  echo $1
+#  echo "$__pit_arg"
+  if [ $__pit_arg -eq 1 ]; then __pit_A1="$1"; fi
+  if [ $__pit_arg -eq 2 ]; then __pit_A2="$1"; fi
+  if [ $__pit_arg -eq 3 ]; then __pit_A3="$1"; fi
+  let "__pit_arg += 1"
+  shift
+done
+
+#echo "Args: $__pit_A1 $__pit_A2 $__pit_A3"
+
+#exit 0
+
+CMD="$__pit_A1"
+PIT_IN="$__pit_A2"
+PIT_OUT="$__pit_A3"
+
+if [ "$PIT_IN" != "" ]; then
+    ensure_path "$PIT_IN"
+    PIT_IN="$(full_path "$PIT_IN")"
+fi
+
+if [ "$PIT_OUT" != "" ]; then
+    ensure_path "$PIT_OUT"
+    PIT_OUT="$(full_path "$PIT_OUT")"
+fi
+
+if [ "$PIT_OUT" == "" ]; then
+    PIT_OUT="$(full_path "$PIT_IN/../")"
+fi
+
+PIT_ID="$PIT_IN/.pit"
+if [ "$PIT_ID" != "" ]; then
+    ensure_path "$PIT_ID"
+fi
+
+#PIT_WORK="$PIT_ID/tmp"
+PIT_WORK="/tmp/.pit/$PIT_PID"
+if [ "$PIT_WORK" != "" ]; then
+    ensure_path "$PIT_WORK"
+    PIT_WORK="$(full_path "$PIT_WORK")"
+fi
+
+#info "In  $PIT_IN"
+#info "Out $PIT_OUT"
+#info "Id  $PIT_ID"
+#info "Wrk $PIT_WORK"
+#exit 0
+
+check fswatch "'pit' needs 'fswatch' to run"
+
+info "Watching pit ($PIT_PID) $PIT_IN with command '$CMD'"
+info "Work in $PIT_WORK output to $PIT_OUT"
+fswatch -0 "$PIT_IN" | while read -d "" event; do
+
+    # do something with ${event}
+    #info "RAW EVENT ${event}"
+
+    f="${event}" ##"$( cut -d',' -f 1 <<< "${event}" )"
+    PIT_DO=0
+
+    #PIT_LOCK="$PIT_ID/$f.lock"
+
+    if [ ! -d "$PIT_IN" ]; then
+        warn "Input directory \"$PIT_IN\" removed"
+        PIT_DO=1
+        #exit 0
+    fi
+
+#    if [[ $PIT_DO ]] && [ -d "$f" ]; then
+#        info "DIR EVENT $f"
+#    fi
+
+    if [[ $PIT_DO ]] && [ -f "$f" ]; then
+        info "File event $f"
+
+        if [ -f "$f.lock" ]; then
+            warn "Locked $f"
+            PIT_DO=1
+            continue
+        fi
+
+        if [[ "$f" == *.lock ]]; then
+            info "Skipping lock file $f"
+            PIT_DO=1
+            continue
+        fi
+
+        lsof "$f" 2>&1 > /dev/null
+        if [ $? -eq 0 ]; then
+            warn "Open $f"
+            PIT_DO=1
+            continue
+        fi
+
+        if [[ $PIT_DO ]] && [ -f "$f" ] && [ ! -f "$f.lock" ]; then
+            touch "$f.lock"
+
+            if [ "$PIT_OUT" != "" ] && [ ! -d "$PIT_OUT" ]; then
+                ensure_path "$PIT_OUT"
+                PIT_OUT="$(full_path "$PIT_OUT")"
+            fi
+
+            fbn=$(basename "$f")
+
+            PIT_DIR="$PIT_WORK/$fbn"
+            ensure_path "$PIT_DIR"
+            info "Moving to $PIT_DIR"
+            mv "$f" "$PIT_DIR"
+            PIT_FILE="$PIT_DIR/$fbn"
+
+            #CMD=$(sed -e 's/[\/&]/\\&/g')
+            #CMD="$(echo "${CMD}" | sed -e 's/[]$.*[\^]/\\&/g' )"
+
+            #ewf=$(echo "${PIT_FILE}" | sed -e 's/[]$.*[\^]/\\&/g')
+            #ewf=$(echo "${ewf}" | sed -e 's=/=\\/=g')
+
+            #ewd=$(echo "${PIT_DIR}" | sed -e 's/[]$.*[\^]/\\&/g')
+            #ewd=$(echo "${ewd}" | sed -e 's=/=\\/=g')
+
+
+            #RUNCMD=$(echo "$CMD" | sed -e 's/\$PIT_DIR/'"$(echo "${ewd}")"'/g')
+            #RUNCMD=$(echo "$RUNCMD" | sed -e 's/\$PIT_FILE/'"$(echo "${ewf}")"'/g')
+
+            RUNCMD="$CMD"
+
+            #CMD=$(echo "$CMD" | sed -e 's/\./\\./g')
+
+            #exit 0
+            #PIT_OUTFILE="$PIT_OUT/$fbn"
+            info "Runing \"$RUNCMD\""
+            (
+                cd "$PIT_DIR" && \
+                eval "${RUNCMD}" && \
+                for __pit_outfile in $PIT_DIR/*; do \
+                    if [ -e "$__pit_outfile" ]; then \
+                        mv -- "$__pit_outfile" "$PIT_OUT/"; \
+                    fi \
+                done && \
+                rmdir "$PIT_DIR" && rm "$f.lock"
+            ) &
+        fi
+    fi
+done
+
+if [ -d "$PIT_WORK" ] && [ -z "$(ls -A "$PIT_WORK")" ]; then
+    info "Removing empty working directory $PIT_WORK"
+    rmdir "$PIT_WORK"
+fi
+
+if [ -d "$PIT_ID" ] && [ -z "$(ls -A "$PIT_ID")" ]; then
+    info "Removing empty pit id directory $PIT_ID"
+    rmdir "$PIT_ID"
+fi
