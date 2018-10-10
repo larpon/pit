@@ -133,14 +133,31 @@ done
 #exit 0
 
 CMD="$__pit_A1"
+if [ "$CMD" == "" ]; then
+    usage
+    error "You need to give a pit <command string>"
+    exit 1
+fi
+
 PIT_IN="$__pit_A2"
-PIT_OUT="$__pit_A3"
+if [ "$PIT_IN" == "" ] || [ ! -d "$PIT_IN" ]; then
+    usage
+    error "You need to give a vaild <input> pit"
+    exit 1
+fi
 
 if [ "$PIT_IN" != "" ]; then
     ensure_path "$PIT_IN"
     PIT_IN="$(full_path "$PIT_IN")"
+
+    if [ "$PIT_IN" == "" ] || [ ! -d "$PIT_IN" ]; then
+        usage
+        error "You need to give a valid <input> pit"
+        exit 1
+    fi
 fi
 
+PIT_OUT="$__pit_A3"
 if [ "$PIT_OUT" != "" ]; then
     ensure_path "$PIT_OUT"
     PIT_OUT="$(full_path "$PIT_OUT")"
@@ -151,7 +168,7 @@ if [ "$PIT_OUT" == "" ]; then
 fi
 
 PIT_ID="$PIT_IN/.pit"
-if [ "$PIT_ID" != "" ]; then
+if [ "$PIT_IN" != "" ] && [ "$PIT_ID" != "" ]; then
     ensure_path "$PIT_ID"
 fi
 
@@ -161,19 +178,6 @@ if [ "$PIT_WORK" != "" ]; then
     ensure_path "$PIT_WORK"
     PIT_WORK="$(full_path "$PIT_WORK")"
 fi
-
-if [ "$CMD" == "" ]; then
-    usage
-    error "You need to give a pit <command string>"
-    exit 1
-fi
-
-if [ "$PIT_IN" == "" ] || [ ! -d "$PIT_IN" ]; then
-    usage
-    error "You need to give an <input> pit"
-    exit 1
-fi
-
 
 #info "In  $PIT_IN"
 #info "Out $PIT_OUT"
