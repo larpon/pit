@@ -28,7 +28,7 @@ OPTIONS:
 
 EXAMPLES:
     * Copy every input file put in ./backup to /tmp/backup
-    # $(basename $0) 'cp "$PIT_FILE" /tmp/backup' ./backup
+    # $(basename $0) 'cp "\$PIT_FILE" /tmp/backup' ./backup
 
 EOF
 }
@@ -161,6 +161,19 @@ if [ "$PIT_WORK" != "" ]; then
     ensure_path "$PIT_WORK"
     PIT_WORK="$(full_path "$PIT_WORK")"
 fi
+
+if [ "$CMD" == "" ]; then
+    usage
+    error "You need to give a pit <command string>"
+    exit 1
+fi
+
+if [ "$PIT_IN" == "" ] || [ ! -d "$PIT_IN" ]; then
+    usage
+    error "You need to give an <input> pit"
+    exit 1
+fi
+
 
 #info "In  $PIT_IN"
 #info "Out $PIT_OUT"
