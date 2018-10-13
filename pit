@@ -8,11 +8,11 @@ usage() {
 cat << EOF
 VERSION: $PIT_VERSION
 USAGE:
-    $(basename $0) [options] '<command string>' <input directory> [output directory]
+    $(basename $0) [options]... '<command>' <directory> [directory]
 
 DESCRIPTION:
     Enables execution of scripts and commands in current shell environment
-    When <input> folder is modified
+    When <directory> input folder is modified
 
 AUTHOR:
     Lars Pontoppidan <dev.larpon@gmail.com>
@@ -103,6 +103,8 @@ check_flag_error() {
     fi
 }
 
+check fswatch "'pit' needs 'fswatch' to run"
+
 PIT_VERBOSE=1
 
 while getopts ":a:hv" OPTION
@@ -115,7 +117,6 @@ do
     esac
 done
 shift "$(($OPTIND - 1))" # Move argument pointer to next argument.
-
 
 __pit_arg=1
 while test $# -gt 0; do
@@ -135,14 +136,14 @@ done
 CMD="$__pit_A1"
 if [ "$CMD" == "" ]; then
     usage
-    error "You need to give a pit <command string>"
+    error "You need to give a pit a <command>"
     exit 1
 fi
 
 PIT_IN="$__pit_A2"
-if [ "$PIT_IN" == "" ] || [ ! -d "$PIT_IN" ]; then
+if [ "$PIT_IN" == "" ]; then
     usage
-    error "You need to give a vaild <input> pit"
+    error "You need to give a vaild <directory> pit"
     exit 1
 fi
 
@@ -152,7 +153,7 @@ if [ "$PIT_IN" != "" ]; then
 
     if [ "$PIT_IN" == "" ] || [ ! -d "$PIT_IN" ]; then
         usage
-        error "You need to give a valid <input> pit"
+        error "Failed creating <directory> pit at $PIT_IN"
         exit 1
     fi
 fi
@@ -185,8 +186,6 @@ fi
 #info "Wrk $PIT_WORK"
 #exit 0
 
-check fswatch "'pit' needs 'fswatch' to run"
-
 info "Watching pit ($PIT_PID) $PIT_IN with command '$CMD'"
 info "Work in $PIT_WORK output to $PIT_OUT"
 fswatch -0 "$PIT_IN" | while read -d "" event; do
@@ -218,17 +217,25 @@ fswatch -0 "$PIT_IN" | while read -d "" event; do
             continue
         fi
 
+        if [[ "$f" == *.part ]]; then
+            info "Skipping part file $f"
+            PIT_DO=1
+            continue
+        fi
+
         if [[ "$f" == *.lock ]]; then
             info "Skipping lock file $f"
             PIT_DO=1
             continue
         fi
 
-        lsof "$f" 2>&1 > /dev/null
-        if [ $? -eq 0 ]; then
-            warn "Open $f"
-            PIT_DO=1
-            continue
+        if [ -f "$f" ]; then
+            lsof "$f" 2>&1 > /dev/null
+            if [ $? -eq 0 ]; then
+                warn "Open $f"
+                PIT_DO=1
+                continue
+            fi
         fi
 
         if [[ $PIT_DO ]] && [ -f "$f" ] && [ ! -f "$f.lock" ]; then
