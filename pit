@@ -21,6 +21,8 @@ LICENSE:
     MIT license
 
 OPTIONS:
+    -e <command>
+        Run <command> on end - when pit is empty
     -h
         Print this and exit
     -v
@@ -160,10 +162,6 @@ while test $# -gt 0; do
   shift
 done
 
-#echo "Args: $__pit_A1 $__pit_A2 $__pit_A3"
-
-#exit 0
-
 CMD="$__pit_A1"
 if [ "$CMD" == "" ]; then
     usage
@@ -204,18 +202,11 @@ if [ "$PIT_IN" != "" ] && [ "$PIT_ID" != "" ]; then
     ensure_path "$PIT_ID"
 fi
 
-#PIT_WORK="$PIT_ID/tmp"
 PIT_WORK="/tmp/.pit/$PIT_PID"
 if [ "$PIT_WORK" != "" ]; then
     ensure_path "$PIT_WORK"
     PIT_WORK="$(full_path "$PIT_WORK")"
 fi
-
-#info "In  $PIT_IN"
-#info "Out $PIT_OUT"
-#info "Id  $PIT_ID"
-#info "Wrk $PIT_WORK"
-#exit 0
 
 info "Watching pit ($PIT_PID) $PIT_IN with command '$CMD'"
 info "Work in $PIT_WORK output to $PIT_OUT"
@@ -285,25 +276,8 @@ fswatch -0 "$PIT_IN" | while read -d "" event; do
             mv "$f" "$PIT_DIR"
             PIT_FILE="$PIT_DIR/$fbn"
 
-            #CMD=$(sed -e 's/[\/&]/\\&/g')
-            #CMD="$(echo "${CMD}" | sed -e 's/[]$.*[\^]/\\&/g' )"
-
-            #ewf=$(echo "${PIT_FILE}" | sed -e 's/[]$.*[\^]/\\&/g')
-            #ewf=$(echo "${ewf}" | sed -e 's=/=\\/=g')
-
-            #ewd=$(echo "${PIT_DIR}" | sed -e 's/[]$.*[\^]/\\&/g')
-            #ewd=$(echo "${ewd}" | sed -e 's=/=\\/=g')
-
-
-            #RUNCMD=$(echo "$CMD" | sed -e 's/\$PIT_DIR/'"$(echo "${ewd}")"'/g')
-            #RUNCMD=$(echo "$RUNCMD" | sed -e 's/\$PIT_FILE/'"$(echo "${ewf}")"'/g')
-
             RUNCMD="$CMD"
 
-            #CMD=$(echo "$CMD" | sed -e 's/\./\\./g')
-
-            #exit 0
-            #PIT_OUTFILE="$PIT_OUT/$fbn"
             info "Running \"$RUNCMD\""
             (
                 cd "$PIT_DIR" && \
