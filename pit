@@ -103,14 +103,45 @@ check_flag_error() {
     fi
 }
 
+notify() {
+    if [ "$OSENV" == "macos" ]; then
+        afplay /System/Library/Sounds/Glass.aiff
+        osascript -e "display notification \"$1\" with title \"pit\""
+    else
+        paplay /usr/share/sounds/Oxygen-Im-Cant-Connect.ogg
+        notify-send "pit" "$1"
+        if cmdavail kdeconnect-cli; then
+            local device_id=bdf897f38bfe1eb7
+            if kdeconnect-cli --list-available | grep "${device_id}" 2>&1 > /dev/null; then
+                kdeconnect-cli -d "${device_id}" --ping-msg "pit $1"
+            fi
+        fi
+    fi
+}
+
+on_end() {
+    if [ "$PIT_ON_END" != "" ]; then
+        count=$(find "$PIT_IN" -maxdepth 1 -type f | wc -l)
+        if [ $count -eq 0 ]; then
+            info "On end ($count) \"$PIT_ON_END\""
+            (
+                cd "$PIT_IN" && \
+                eval "${PIT_ON_END}"
+            ) &
+        fi
+    fi
+}
+
 check fswatch "'pit' needs 'fswatch' to run"
 
 PIT_VERBOSE=1
+PIT_ON_END=""
 
-while getopts ":a:hv" OPTION
+while getopts ":a:e:hv" OPTION
 do
     case $OPTION in
         a ) check_flag_error "$OPTARG"; PIT_ARG=$OPTARG ;;
+        e ) PIT_ON_END="$OPTARG" ;;
         h ) usage; exit 0 ;;
         v ) PIT_VERBOSE=0 ;;
         * ) usage; error "One or more options not recognized..."; exit 1 ;; # DEFAULT
@@ -273,7 +304,7 @@ fswatch -0 "$PIT_IN" | while read -d "" event; do
 
             #exit 0
             #PIT_OUTFILE="$PIT_OUT/$fbn"
-            info "Runing \"$RUNCMD\""
+            info "Running \"$RUNCMD\""
             (
                 cd "$PIT_DIR" && \
                 eval "${RUNCMD}" && \
@@ -282,10 +313,12 @@ fswatch -0 "$PIT_IN" | while read -d "" event; do
                         mv -- "$__pit_outfile" "$PIT_OUT/"; \
                     fi \
                 done && \
-                rmdir "$PIT_DIR" && rm "$f.lock"
+                rmdir "$PIT_DIR" && rm "$f.lock" && on_end
             ) &
         fi
+
     fi
+
 done
 
 if [ -d "$PIT_WORK" ] && [ -z "$(ls -A "$PIT_WORK")" ]; then
