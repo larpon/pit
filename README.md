@@ -29,7 +29,7 @@ cd /path/to/asset
 
 *New way of doing things*
 ```bash
-pit -e '/path/to/update-meta.sh && notify "ready"' 'colorize.sh "$PIT_FILE" && scale.sh "$PIT_FILE" && mv "$PIT_OUT"/*.png /path/to/game/assets' "/tmp/colorize+scale.pit"
+pit -n "Ready" -e '/path/to/update-meta.sh' 'colorize.sh "$PIT_FILE" && scale.sh "$PIT_FILE" && mv "$PIT_OUT"/*.png /path/to/game/assets' "/tmp/colorize+scale.pit"
 # * Export <file.png> to </tmp/colorize+scale.pit>
 ```
 ... wait for notification, your asset is done processing
@@ -63,7 +63,7 @@ Default output directory is always parent directory to the pit - unless specifie
 Run ImageMagick 'convert' command on input file(s) coming to `/tmp/resize.pit` place the resulting files in `/tmp`.<br>
 Notify with message "Done" when finished.
 ```
-pit -n "Done" 'convert "$PIT_FILE" -resize "200x" "$PIT_FILE"' "/tmp/resize.pit"
+pit -n "Resize done" 'convert "$PIT_FILE" -resize "200x" "$PIT_FILE"' "/tmp/resize.pit"
 # Krita or GIMP -> Export <file.png> to </tmp/resize.pit>
 ```
 
