@@ -78,6 +78,7 @@ mv some_image.png /tmp/sort.pit
 
 ## Notes
 * pits are created _once_
+* pits use `eval`
 * pits can be "chained" (output of one pit can be input to another pit e.g. input -> first.pit -> second.pit -> final/destination)
 * pits can be nested. Pits can contain pits. Be aware of bottomless or infinite recursive pits!
 * pits currently only work on input _files_ **NOT** _directories_
