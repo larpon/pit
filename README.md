@@ -77,11 +77,13 @@ mv some_image.png /tmp/sort.pit
 <YOUR NIFTY EXAMPLE HERE> (PR's welcome!)
 
 ## Notes
+* pits are created _once_
 * pits can be "chained" (output of one pit can be input to another pit e.g. input -> first.pit -> second.pit -> final/destination)
 * pits can be nested. Pits can contain pits. Be aware of bottomless or infinite recursive pits!
 * pits currently only work on input _files_ **NOT** _directories_
-* pits are not recursive (YET)
+* pits are _NOT_ recursive (YET)
 * pits are powerful
-* pits are dangerous - make sure you test your scripts and/or commands first
+* pits are dangerous - make sure you test your pits, scripts and/or commands before working with crucial data
+* pits only _move_ files around. No files are deleted!
 * pits write output to the pit's parent directory per default. Change it by giving a valid path as last argument
-* pits work on files in `<tmp location>/.pit/<PID>/` <- check here if your files are gone after a broken run
+* pits work on files in `<OS temp location>/.pit/<PID>/` <- check here if your files are gone after a broken run
