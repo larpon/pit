@@ -60,29 +60,28 @@ Make sure you have [fswatch](https://github.com/emcrisostomo/fswatch) installed.
 ## Examples
 Default output directory is always parent directory to the pit - unless specified.
 
-Run some ImageMagick command on input file(s) coming to `/tmp/resize.pit` place the resulting files in `/tmp`.
+Run ImageMagick 'convert' command on input file(s) coming to `/tmp/resize.pit` place the resulting files in `/tmp`.<br>
+Notify with message "Done" when finished.
 ```
-pit 'convert "$PIT_IN" -resize "200x" png32:"$PIT_WORK/resized.png"' "/tmp/resize.pit"
+pit -n "Done" 'convert "$PIT_FILE" -resize "200x" "$PIT_FILE"' "/tmp/resize.pit"
 # Krita or GIMP -> Export <file.png> to </tmp/resize.pit>
 ```
 
-Run some ImageMagick command on input file(s) coming to `/tmp/resize.pit` place the resulting files in `/tmp`.
-```
-pit 'convert "$PIT_IN" -resize "200x" png32:"$PIT_WORK/resized.png"' "/tmp/resize.pit"
-# Krita or GIMP -> Export <file.png> to </tmp/resize.pit>
-```
-
-Run some ImageMagick command on input file(s) coming to `/tmp/sort.pit`<br>
+Sort files based on ImageMagick's 'identify' coming to `/tmp/sort.pit`<br>
 sort the output based on size and place the resulting files in `/tmp/assets/<large/small>`.
 ```
-pit 'W=$(identify -format "%[w]" "$PIT_IN") if [ $W -gt 200 ]; then mv "$PIT_IN" /tmp/assets/large; else mv "$PIT_IN" /tmp/assets/small' "/tmp/sort.pit"
+pit 'W=$(identify -format "%[w]" "$PIT_FILE"); echo "$W"; if [ "$W" -gt 200 ]; then mv "$PIT_FILE" /tmp/assets/large; else mv "$PIT_FILE" /tmp/assets/small; fi' "/tmp/sort.pit"
 mv some_image.png /tmp/sort.pit
 ```
+
+<YOUR NIFTY EXAMPLE HERE> (PR's welcome!)
 
 ## Notes
 * pits can be "chained" (output of one pit can be input to another pit e.g. input -> first.pit -> second.pit -> final/destination)
 * pits can be nested. Pits can contain pits. Be aware of bottomless or infinite recursive pits!
-* pits only work on input _files_ **NOT** _directories_
+* pits currently only work on input _files_ **NOT** _directories_
 * pits are not recursive (YET)
 * pits are powerful
-* pits are also dangerous - make sure you test your scripts and/or commands first
+* pits are dangerous - make sure you test your scripts and/or commands first
+* pits write output to the pit's parent directory per default. Change it by giving a valid path as last argument
+* pits work on files in `<tmp location>/.pit/<PID>/` <- check here if your files are gone after a broken run

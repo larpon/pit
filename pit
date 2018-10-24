@@ -132,19 +132,24 @@ on_end() {
             ) &
         fi
     fi
+    if [ "$PIT_NOTIFY" != "" ]; then
+        notify "$PIT_NOTIFY"
+    fi
 }
 
 check fswatch "'pit' needs 'fswatch' to run"
 
 PIT_VERBOSE=1
 PIT_ON_END=""
+PIT_NOTIFY=""
 
-while getopts ":a:e:hv" OPTION
+while getopts ":e:hn:v" OPTION
 do
     case $OPTION in
-        a ) check_flag_error "$OPTARG"; PIT_ARG=$OPTARG ;;
+        #a ) check_flag_error "$OPTARG"; PIT_ARG=$OPTARG ;;
         e ) PIT_ON_END="$OPTARG" ;;
         h ) usage; exit 0 ;;
+        n ) PIT_NOTIFY="$OPTARG" ;;
         v ) PIT_VERBOSE=0 ;;
         * ) usage; error "One or more options not recognized..."; exit 1 ;; # DEFAULT
     esac
