@@ -50,7 +50,7 @@ In layman terms
 
 Simply download `pit` somewhere to your `$PATH`:
 ```
-wget -O ~/.local/bin/pit https://raw.githubusercontent.com/Larpon/pit/master/pit
+wget -O ~/.local/bin/pit https://raw.githubusercontent.com/larpon/pit/master/pit
 chmod +x ~/.local/bin/pit
 ```
 
